@@ -19,7 +19,7 @@ ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TEMPLATES_DIR = os.path.join(ROOT_DIR, "templates")
 
 # Create FastAPI app
-app = FastAPI(title="Recipe Management App")
+app = FastAPI(title="Plateful AI")
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="recipe_app/static"), name="static")

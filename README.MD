@@ -1,4 +1,4 @@
-# Recipe Management App
+# Plateful AI
 
 A Python web application for managing recipes, planning meals, and generating shopping lists.
 
