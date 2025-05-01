@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Recipe Management App - Home{% endblock %}
+
+{% block content %}
+<div class="px-4 py-5 my-5 text-center">
+    <h1 class="display-5 fw-bold text-body-emphasis">Recipe Management App</h1>
+    <div class="col-lg-6 mx-auto">
+        <p class="lead mb-4">
+            Easily manage your recipes, plan your meals, and generate shopping lists all in one place.
+        </p>
+        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+            <a href="/recipes/new" class="btn btn-primary btn-lg px-4 gap-3">Add New Recipe</a>
+            <a href="/recipes" class="btn btn-outline-secondary btn-lg px-4">Browse Recipes</a>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4">
+        <div class="card mb-4 shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-utensils fa-4x mb-3 text-primary"></i>
+                <h3 class="card-title">Recipe Management</h3>
+                <p class="card-text">Add and organize your favorite recipes with detailed ingredients and instructions.</p>
+                <a href="/recipes" class="btn btn-sm btn-outline-primary">Manage Recipes</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card mb-4 shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-calendar-alt fa-4x mb-3 text-primary"></i>
+                <h3 class="card-title">Meal Planning</h3>
+                <p class="card-text">Plan your meals for the week by assigning recipes to specific days and meal times.</p>
+                <a href="/calendar" class="btn btn-sm btn-outline-primary">Plan Meals</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card mb-4 shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-shopping-cart fa-4x mb-3 text-primary"></i>
+                <h3 class="card-title">Shopping Lists</h3>
+                <p class="card-text">Generate shopping lists based on your meal plan with ingredients automatically consolidated.</p>
+                <a href="/shopping" class="btn btn-sm btn-outline-primary">Shopping List</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">Nutrition Analysis</h5>
+            </div>
+            <div class="card-body">
+                <p>Our app connects with the USDA Food Database to provide accurate nutrition information for your recipes. Calculate calories and nutrients per serving.</p>
+                <ul>
+                    <li>Automatic calorie calculation</li>
+                    <li>Nutrition information per serving</li>
+                    <li>USDA database integration</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">Recipe Import</h5>
+            </div>
+            <div class="card-body">
+                <p>Coming soon: Import recipes directly from your favorite cooking websites. Just provide the URL, and our app will extract the recipe details automatically.</p>
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle"></i> This feature is currently under development.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

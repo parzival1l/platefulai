@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}Meal Planning Calendar{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Meal Planning Calendar</h1>
+    <div>
+        <a href="/shopping?start_date={{ week_dates[0].isoformat() }}&end_date={{ week_dates[-1].isoformat() }}" class="btn btn-primary">
+            <i class="fas fa-shopping-cart"></i> Generate Shopping List
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <a href="/calendar?start_date={{ prev_week }}" class="btn btn-outline-secondary">
+                <i class="fas fa-chevron-left"></i> Previous Week
+            </a>
+
+            <h3 class="mb-0">
+                Week of {{ week_dates[0].strftime('%B %d, %Y') }}
+            </h3>
+
+            <a href="/calendar?start_date={{ next_week }}" class="btn btn-outline-secondary">
+                Next Week <i class="fas fa-chevron-right"></i>
+            </a>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 15%;">Meal</th>
+                        {% for day in week_dates %}
+                        <th style="width: 12.1%;" class="text-center {% if day.strftime('%Y-%m-%d') == current_date %}bg-light{% endif %}">
+                            {{ day.strftime('%a') }}<br>
+                            <small>{{ day.strftime('%b %d') }}</small>
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Breakfast Row -->
+                    <tr>
+                        <td class="align-middle bg-light">
+                            <strong>Breakfast</strong>
+                        </td>
+                        {% for day in week_dates %}
+                        <td class="meal-cell">
+                            {% if calendar_data[day]["breakfast"] %}
+                            <div class="meal-item">
+                                <div class="d-flex justify-content-between">
+                                    <a href="/recipes/{{ calendar_data[day]['breakfast']['recipe_id'] }}">
+                                        {{ calendar_data[day]["breakfast"]["recipe_name"] }}
+                                    </a>
+                                    <a href="/calendar/plan/{{ calendar_data[day]['breakfast']['plan_id'] }}/delete?redirect_date={{ day.isoformat() }}"
+                                       class="text-danger" onclick="return confirm('Remove this meal?');">
+                                        <i class="fas fa-times"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            {% else %}
+                            <button class="btn btn-sm btn-outline-secondary w-100 add-meal-btn"
+                                    data-bs-toggle="modal" data-bs-target="#addMealModal"
+                                    data-date="{{ day.isoformat() }}" data-meal-type="breakfast">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+
+                    <!-- Lunch Row -->
+                    <tr>
+                        <td class="align-middle bg-light">
+                            <strong>Lunch</strong>
+                        </td>
+                        {% for day in week_dates %}
+                        <td class="meal-cell">
+                            {% if calendar_data[day]["lunch"] %}
+                            <div class="meal-item">
+                                <div class="d-flex justify-content-between">
+                                    <a href="/recipes/{{ calendar_data[day]['lunch']['recipe_id'] }}">
+                                        {{ calendar_data[day]["lunch"]["recipe_name"] }}
+                                    </a>
+                                    <a href="/calendar/plan/{{ calendar_data[day]['lunch']['plan_id'] }}/delete?redirect_date={{ day.isoformat() }}"
+                                       class="text-danger" onclick="return confirm('Remove this meal?');">
+                                        <i class="fas fa-times"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            {% else %}
+                            <button class="btn btn-sm btn-outline-secondary w-100 add-meal-btn"
+                                    data-bs-toggle="modal" data-bs-target="#addMealModal"
+                                    data-date="{{ day.isoformat() }}" data-meal-type="lunch">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+
+                    <!-- Dinner Row -->
+                    <tr>
+                        <td class="align-middle bg-light">
+                            <strong>Dinner</strong>
+                        </td>
+                        {% for day in week_dates %}
+                        <td class="meal-cell">
+                            {% if calendar_data[day]["dinner"] %}
+                            <div class="meal-item">
+                                <div class="d-flex justify-content-between">
+                                    <a href="/recipes/{{ calendar_data[day]['dinner']['recipe_id'] }}">
+                                        {{ calendar_data[day]["dinner"]["recipe_name"] }}
+                                    </a>
+                                    <a href="/calendar/plan/{{ calendar_data[day]['dinner']['plan_id'] }}/delete?redirect_date={{ day.isoformat() }}"
+                                       class="text-danger" onclick="return confirm('Remove this meal?');">
+                                        <i class="fas fa-times"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            {% else %}
+                            <button class="btn btn-sm btn-outline-secondary w-100 add-meal-btn"
+                                    data-bs-toggle="modal" data-bs-target="#addMealModal"
+                                    data-date="{{ day.isoformat() }}" data-meal-type="dinner">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+
+                    <!-- Snacks Row -->
+                    <tr>
+                        <td class="align-middle bg-light">
+                            <strong>Snacks</strong>
+                        </td>
+                        {% for day in week_dates %}
+                        <td class="meal-cell">
+                            {% if calendar_data[day]["snacks"] %}
+                            {% for snack in calendar_data[day]["snacks"] %}
+                            <div class="meal-item mb-2">
+                                <div class="d-flex justify-content-between">
+                                    <a href="/recipes/{{ snack['recipe_id'] }}">
+                                        {{ snack["recipe_name"] }}
+                                    </a>
+                                    <a href="/calendar/plan/{{ snack['plan_id'] }}/delete?redirect_date={{ day.isoformat() }}"
+                                       class="text-danger" onclick="return confirm('Remove this snack?');">
+                                        <i class="fas fa-times"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            {% endif %}
+
+                            <button class="btn btn-sm btn-outline-secondary w-100 add-meal-btn"
+                                    data-bs-toggle="modal" data-bs-target="#addMealModal"
+                                    data-date="{{ day.isoformat() }}" data-meal-type="snack">
+                                <i class="fas fa-plus"></i> Add Snack
+                            </button>
+                        </td>
+                        {% endfor %}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Meal Modal -->
+<div class="modal fade" id="addMealModal" tabindex="-1" aria-labelledby="addMealModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addMealModalLabel">Add to Meal Plan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addMealForm" action="/calendar/plan" method="post">
+                    <input type="hidden" id="mealDate" name="date" value="">
+                    <input type="hidden" id="mealType" name="meal_type" value="">
+
+                    <div class="mb-3">
+                        <label for="recipe_id" class="form-label">Select Recipe</label>
+                        <select class="form-select" id="recipe_id" name="recipe_id" required>
+                            <option value="">-- Select a Recipe --</option>
+                            {% for recipe in recipes %}
+                            <option value="{{ recipe.id }}">{{ recipe.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary">
+                            Add to Meal Plan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Handle Add Meal button click
+        $('.add-meal-btn').click(function() {
+            const date = $(this).data('date');
+            const mealType = $(this).data('meal-type');
+
+            // Set form values
+            $('#mealDate').val(date);
+            $('#mealType').val(mealType);
+
+            // Update modal title
+            const formattedDate = new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            let mealTypeName = mealType.charAt(0).toUpperCase() + mealType.slice(1);
+            $('#addMealModalLabel').text(`Add ${mealTypeName} for ${formattedDate}`);
+        });
+    });
+</script>
+{% endblock %}

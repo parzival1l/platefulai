@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Recipe - {{ recipe.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Edit Recipe</h1>
+    <div>
+        <a href="/recipes/{{ recipe.id }}" class="btn btn-outline-secondary me-2">
+            <i class="fas fa-arrow-left"></i> Back to Recipe
+        </a>
+        <a href="/recipes/{{ recipe.id }}/delete" class="btn btn-outline-danger"
+           onclick="return confirm('Are you sure you want to delete this recipe?');">
+            <i class="fas fa-trash"></i> Delete Recipe
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form id="recipeForm" action="/recipes/{{ recipe.id }}" method="post">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Recipe Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ recipe.name }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="2">{{ recipe.description }}</textarea>
+                        <div class="form-text">A brief description of the recipe.</div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="servings" class="form-label">Servings <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="servings" name="servings" min="1" value="{{ recipe.servings }}" required>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="prep_time" class="form-label">Prep Time (min)</label>
+                            <input type="number" class="form-control" id="prep_time" name="prep_time" min="0" value="{{ recipe.prep_time or '' }}">
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="cook_time" class="form-label">Cook Time (min)</label>
+                            <input type="number" class="form-control" id="cook_time" name="cook_time" min="0" value="{{ recipe.cook_time or '' }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Ingredients</h5>
+                            <button type="button" class="btn btn-sm btn-primary" id="addIngredient">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="ingredientList">
+                                <!-- Existing ingredients will be loaded by JavaScript -->
+                            </div>
+
+                            <!-- Template for new ingredient -->
+                            <template id="ingredientTemplate">
+                                <div class="ingredient-item mb-3 border rounded p-3">
+                                    <div class="row g-2">
+                                        <div class="col-md-5">
+                                            <input type="text" class="form-control ingredient-name" placeholder="Ingredient name" required>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="number" class="form-control ingredient-amount" placeholder="Amount" step="0.01" min="0" required>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="text" class="form-control ingredient-unit" placeholder="Unit (g, cup, etc)" required>
+                                        </div>
+                                        <div class="col-md-1">
+                                            <button type="button" class="btn btn-outline-danger remove-ingredient">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" class="ingredient-id" value="">
+                                    <input type="hidden" class="ingredient-usda-id" value="">
+                                    <input type="hidden" class="ingredient-calories" value="">
+                                </div>
+                            </template>
+
+                            <!-- Hidden input for ingredients JSON -->
+                            <input type="hidden" id="ingredients_json" name="ingredients_json" value="[]">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">Instructions</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="instructions" class="form-label">Cooking Instructions <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="instructions" name="instructions" rows="10" required>{{ recipe.instructions }}</textarea>
+                                <div class="form-text">Enter each step on a new line.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-lg btn-primary">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Existing ingredients data
+    const existingIngredients = [
+        {% for ingredient in recipe.ingredients %}
+        {
+            id: {{ ingredient.id }},
+            name: "{{ ingredient.name }}",
+            amount: {{ ingredient.amount }},
+            unit: "{{ ingredient.unit }}",
+            usda_food_id: "{{ ingredient.usda_food_id or '' }}",
+            calories_per_unit: {{ ingredient.calories_per_unit or 0 }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    $(document).ready(function() {
+        // Load existing ingredients
+        existingIngredients.forEach(function(ingredient) {
+            addIngredientToList(ingredient);
+        });
+
+        // Add new ingredient
+        $('#addIngredient').click(function() {
+            addIngredientToList();
+        });
+
+        // Handle form submission
+        $('#recipeForm').submit(function(e) {
+            // Collect ingredients
+            const ingredients = [];
+            $('.ingredient-item').each(function() {
+                const name = $(this).find('.ingredient-name').val();
+                const amount = $(this).find('.ingredient-amount').val();
+                const unit = $(this).find('.ingredient-unit').val();
+                const id = $(this).find('.ingredient-id').val();
+                const usda_food_id = $(this).find('.ingredient-usda-id').val();
+                const calories_per_unit = $(this).find('.ingredient-calories').val();
+
+                if (name && amount && unit) {
+                    const ingredient = {
+                        name: name,
+                        amount: parseFloat(amount),
+                        unit: unit
+                    };
+
+                    if (id) ingredient.id = parseInt(id);
+                    if (usda_food_id) ingredient.usda_food_id = usda_food_id;
+                    if (calories_per_unit) ingredient.calories_per_unit = parseFloat(calories_per_unit);
+
+                    ingredients.push(ingredient);
+                }
+            });
+
+            // Set ingredients JSON
+            $('#ingredients_json').val(JSON.stringify(ingredients));
+
+            // Continue with form submission
+            return true;
+        });
+
+        // Add an ingredient if none exist
+        if (existingIngredients.length === 0) {
+            $('#addIngredient').click();
+        }
+    });
+
+    // Function to add ingredient to the list
+    function addIngredientToList(ingredient = null) {
+        const template = document.getElementById('ingredientTemplate');
+        const clone = template.content.cloneNode(true);
+
+        // If ingredient data provided, fill in the values
+        if (ingredient) {
+            $(clone).find('.ingredient-name').val(ingredient.name);
+            $(clone).find('.ingredient-amount').val(ingredient.amount);
+            $(clone).find('.ingredient-unit').val(ingredient.unit);
+            $(clone).find('.ingredient-id').val(ingredient.id);
+            $(clone).find('.ingredient-usda-id').val(ingredient.usda_food_id);
+            $(clone).find('.ingredient-calories').val(ingredient.calories_per_unit);
+        }
+
+        // Add the ingredient to the list
+        $('#ingredientList').append(clone);
+
+        // Add event listener to remove button
+        $('.remove-ingredient').last().click(function() {
+            $(this).closest('.ingredient-item').remove();
+        });
+    }
+</script>
+{% endblock %}

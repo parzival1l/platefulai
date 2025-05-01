@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+
+{% block title %}{{ recipe.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>{{ recipe.name }}</h1>
+    <div>
+        <a href="/recipes/{{ recipe.id }}/edit" class="btn btn-outline-primary me-2">
+            <i class="fas fa-edit"></i> Edit Recipe
+        </a>
+        <a href="/calendar?recipe_id={{ recipe.id }}" class="btn btn-primary">
+            <i class="fas fa-calendar-plus"></i> Add to Meal Plan
+        </a>
+    </div>
+</div>
+
+{% if recipe.description %}
+<div class="alert alert-light">
+    {{ recipe.description }}
+</div>
+{% endif %}
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Recipe Info</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Servings
+                        <span class="badge bg-primary rounded-pill">{{ recipe.servings }}</span>
+                    </li>
+                    {% if recipe.prep_time %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Prep Time
+                        <span>{{ recipe.prep_time }} min</span>
+                    </li>
+                    {% endif %}
+                    {% if recipe.cook_time %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Cook Time
+                        <span>{{ recipe.cook_time }} min</span>
+                    </li>
+                    {% endif %}
+                    {% if recipe.prep_time and recipe.cook_time %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Total Time
+                        <span>{{ recipe.prep_time + recipe.cook_time }} min</span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Nutrition</h5>
+                <button class="btn btn-sm btn-outline-primary" id="refreshNutrition">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="nutritionInfo">
+                    {% if calories_per_serving > 0 %}
+                    <div class="text-center mb-3">
+                        <h4>{{ calories_per_serving|round|int }} Calories</h4>
+                        <p class="text-muted">per serving</p>
+                    </div>
+                    <div class="progress mb-2" style="height: 25px;">
+                        <div class="progress-bar bg-primary" role="progressbar" style="width: 100%;"
+                             aria-valuenow="{{ calories_per_serving|round|int }}" aria-valuemin="0" aria-valuemax="{{ calories_per_serving|round|int }}">
+                            {{ calories_per_serving|round|int }} cal
+                        </div>
+                    </div>
+                    <p class="text-muted small text-center">
+                        Total Recipe: {{ total_calories|round|int }} calories
+                    </p>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Nutrition information not available. Add USDA food IDs to ingredients to calculate nutrition.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0">Ingredients</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    {% for ingredient in recipe.ingredients %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center" id="ingredient-{{ ingredient.id }}">
+                        <span>{{ ingredient.amount }} {{ ingredient.unit }} {{ ingredient.name }}</span>
+                        {% if ingredient.calories_per_unit %}
+                        <span class="badge bg-light text-dark">
+                            {{ (ingredient.amount * ingredient.calories_per_unit)|round|int }} cal
+                        </span>
+                        {% else %}
+                        <button class="btn btn-sm btn-outline-secondary lookup-nutrition" data-ingredient-id="{{ ingredient.id }}" data-ingredient-name="{{ ingredient.name }}">
+                            <i class="fas fa-search"></i> Find Nutrition
+                        </button>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Instructions</h5>
+            </div>
+            <div class="card-body">
+                {% set instructions_list = recipe.instructions.split('\n') %}
+                <ol class="list-group list-group-numbered">
+                    {% for step in instructions_list %}
+                    {% if step|trim %}
+                    <li class="list-group-item">{{ step }}</li>
+                    {% endif %}
+                    {% endfor %}
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Nutrition Lookup Modal -->
+<div class="modal fade" id="nutritionModal" tabindex="-1" aria-labelledby="nutritionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="nutritionModalLabel">Nutrition Lookup</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="ingredientSearch" class="form-label">Search for ingredient in USDA database</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="ingredientSearch" placeholder="Enter ingredient name">
+                        <button class="btn btn-outline-primary" type="button" id="searchButton">Search</button>
+                    </div>
+                </div>
+                <div id="searchResults" class="mt-3">
+                    <!-- Search results will go here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Current ingredient being looked up
+    let currentIngredientId = null;
+
+    // Event listeners
+    $(document).ready(function() {
+        // Handle nutrition lookup button click
+        $('.lookup-nutrition').click(function() {
+            currentIngredientId = $(this).data('ingredient-id');
+            const ingredientName = $(this).data('ingredient-name');
+
+            // Pre-fill search box with ingredient name
+            $('#ingredientSearch').val(ingredientName);
+
+            // Show modal
+            $('#nutritionModal').modal('show');
+        });
+
+        // Handle search button click
+        $('#searchButton').click(function() {
+            const query = $('#ingredientSearch').val().trim();
+            if (query) {
+                searchIngredient(query);
+            }
+        });
+
+        // Allow pressing Enter in search box
+        $('#ingredientSearch').keypress(function(e) {
+            if (e.which === 13) {
+                $('#searchButton').click();
+                e.preventDefault();
+            }
+        });
+
+        // Handle refresh nutrition button
+        $('#refreshNutrition').click(function() {
+            refreshNutrition();
+        });
+    });
+
+    // Search for ingredient in USDA database
+    function searchIngredient(query) {
+        $('#searchResults').html('<div class="d-flex justify-content-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+
+        $.ajax({
+            url: '/nutrition/search',
+            data: { query: query },
+            success: function(data) {
+                displaySearchResults(data);
+            },
+            error: function() {
+                $('#searchResults').html('<div class="alert alert-danger">Error searching for ingredient. Please try again.</div>');
+            }
+        });
+    }
+
+    // Display search results
+    function displaySearchResults(data) {
+        if (data.foods && data.foods.length > 0) {
+            let html = '<div class="list-group">';
+
+            data.foods.forEach(food => {
+                const calories = food.nutrients.find(n => n.name === 'Energy');
+                const caloriesText = calories ? `${calories.amount} ${calories.unit}` : 'Calories N/A';
+
+                html += `
+                <a href="#" class="list-group-item list-group-item-action select-food" data-food-id="${food.id}">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">${food.description}</h6>
+                        <span class="badge bg-info">${caloriesText}</span>
+                    </div>
+                    <small class="text-muted">${food.category}</small>
+                </a>`;
+            });
+
+            html += '</div>';
+            $('#searchResults').html(html);
+
+            // Add event listeners to food items
+            $('.select-food').click(function() {
+                const foodId = $(this).data('food-id');
+                selectFood(foodId);
+            });
+        } else {
+            $('#searchResults').html('<div class="alert alert-info">No results found. Try a different search term.</div>');
+        }
+    }
+
+    // Select a food from the search results
+    function selectFood(foodId) {
+        if (!currentIngredientId) return;
+
+        $('#searchResults').html('<div class="d-flex justify-content-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+
+        $.ajax({
+            url: '/nutrition/update_ingredient_nutrition',
+            method: 'POST',
+            data: {
+                ingredient_id: currentIngredientId,
+                usda_food_id: foodId
+            },
+            success: function(data) {
+                // Update the ingredient in the list
+                const ingredientItem = $(`#ingredient-${currentIngredientId}`);
+                ingredientItem.find('button').replaceWith(`
+                    <span class="badge bg-light text-dark">
+                        ${Math.round(data.total_calories)} cal
+                    </span>
+                `);
+
+                // Close modal
+                $('#nutritionModal').modal('hide');
+
+                // Refresh nutrition info
+                refreshNutrition();
+            },
+            error: function() {
+                $('#searchResults').html('<div class="alert alert-danger">Error updating nutrition information. Please try again.</div>');
+            }
+        });
+    }
+
+    // Refresh nutrition information
+    function refreshNutrition() {
+        $('#nutritionInfo').html('<div class="d-flex justify-content-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+
+        $.ajax({
+            url: `/nutrition/calculate/{{ recipe.id }}`,
+            success: function(data) {
+                if (data.calories_per_serving > 0) {
+                    const caloriesPerServing = Math.round(data.calories_per_serving);
+                    const totalCalories = Math.round(data.total_calories);
+
+                    $('#nutritionInfo').html(`
+                        <div class="text-center mb-3">
+                            <h4>${caloriesPerServing} Calories</h4>
+                            <p class="text-muted">per serving</p>
+                        </div>
+                        <div class="progress mb-2" style="height: 25px;">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: 100%;"
+                                 aria-valuenow="${caloriesPerServing}" aria-valuemin="0" aria-valuemax="${caloriesPerServing}">
+                                ${caloriesPerServing} cal
+                            </div>
+                        </div>
+                        <p class="text-muted small text-center">
+                            Total Recipe: ${totalCalories} calories
+                        </p>
+                    `);
+                } else {
+                    $('#nutritionInfo').html(`
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Nutrition information not available. Add USDA food IDs to ingredients to calculate nutrition.
+                        </div>
+                    `);
+                }
+            },
+            error: function() {
+                $('#nutritionInfo').html('<div class="alert alert-danger">Error fetching nutrition information. Please try again.</div>');
+            }
+        });
+    }
+</script>
+{% endblock %}

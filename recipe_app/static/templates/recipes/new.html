@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Add New Recipe{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Add New Recipe</h1>
+    <a href="/recipes" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Recipes
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form id="recipeForm" action="/recipes/" method="post">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Recipe Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="2"></textarea>
+                        <div class="form-text">A brief description of the recipe.</div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="servings" class="form-label">Servings <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="servings" name="servings" min="1" required>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="prep_time" class="form-label">Prep Time (min)</label>
+                            <input type="number" class="form-control" id="prep_time" name="prep_time" min="0">
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="cook_time" class="form-label">Cook Time (min)</label>
+                            <input type="number" class="form-control" id="cook_time" name="cook_time" min="0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Ingredients</h5>
+                            <button type="button" class="btn btn-sm btn-primary" id="addIngredient">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="ingredientList">
+                                <!-- Ingredients will be added here -->
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> Add ingredients using the button above.
+                                </div>
+                            </div>
+
+                            <!-- Template for new ingredient -->
+                            <template id="ingredientTemplate">
+                                <div class="ingredient-item mb-3 border rounded p-3">
+                                    <div class="row g-2">
+                                        <div class="col-md-5">
+                                            <input type="text" class="form-control ingredient-name" placeholder="Ingredient name" required>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="number" class="form-control ingredient-amount" placeholder="Amount" step="0.01" min="0" required>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="text" class="form-control ingredient-unit" placeholder="Unit (g, cup, etc)" required>
+                                        </div>
+                                        <div class="col-md-1">
+                                            <button type="button" class="btn btn-outline-danger remove-ingredient">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Hidden input for ingredients JSON -->
+                            <input type="hidden" id="ingredients_json" name="ingredients_json" value="[]">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">Instructions</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="instructions" class="form-label">Cooking Instructions <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="instructions" name="instructions" rows="10" required></textarea>
+                                <div class="form-text">Enter each step on a new line.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-lg btn-primary">
+                    <i class="fas fa-save"></i> Save Recipe
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Add ingredient
+        $('#addIngredient').click(function() {
+            const template = document.getElementById('ingredientTemplate');
+            const clone = template.content.cloneNode(true);
+
+            // Remove the info alert if it's the first ingredient
+            if ($('#ingredientList .alert').length > 0) {
+                $('#ingredientList .alert').remove();
+            }
+
+            // Add the ingredient to the list
+            $('#ingredientList').append(clone);
+
+            // Add event listener to remove button
+            $('.remove-ingredient').last().click(function() {
+                $(this).closest('.ingredient-item').remove();
+
+                // Add info alert if no ingredients left
+                if ($('.ingredient-item').length === 0) {
+                    $('#ingredientList').html('<div class="alert alert-info"><i class="fas fa-info-circle"></i> Add ingredients using the button above.</div>');
+                }
+            });
+        });
+
+        // Handle form submission
+        $('#recipeForm').submit(function(e) {
+            // Collect ingredients
+            const ingredients = [];
+            $('.ingredient-item').each(function() {
+                const name = $(this).find('.ingredient-name').val();
+                const amount = $(this).find('.ingredient-amount').val();
+                const unit = $(this).find('.ingredient-unit').val();
+
+                if (name && amount && unit) {
+                    ingredients.push({
+                        name: name,
+                        amount: parseFloat(amount),
+                        unit: unit
+                    });
+                }
+            });
+
+            // Set ingredients JSON
+            $('#ingredients_json').val(JSON.stringify(ingredients));
+
+            // Continue with form submission
+            return true;
+        });
+
+        // Add first ingredient by default
+        $('#addIngredient').click();
+    });
+</script>
+{% endblock %}

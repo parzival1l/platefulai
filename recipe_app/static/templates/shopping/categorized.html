@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Categorized Shopping List{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Shopping List</h1>
+    <div>
+        <a href="/calendar?start_date={{ start_date }}" class="btn btn-outline-secondary me-2">
+            <i class="fas fa-arrow-left"></i> Back to Calendar
+        </a>
+        <a href="/shopping/print?start_date={{ start_date }}&end_date={{ end_date }}&categorized=true" class="btn btn-outline-primary me-2" target="_blank">
+            <i class="fas fa-print"></i> Print
+        </a>
+        <a href="/shopping?start_date={{ start_date }}&end_date={{ end_date }}&categorized=false" class="btn btn-outline-primary">
+            <i class="fas fa-list"></i> Simple List
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            Shopping list for {{ shopping_list.start_date.strftime('%b %d') }} - {{ shopping_list.end_date.strftime('%b %d, %Y') }}
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if shopping_list.categories and shopping_list.categories.items()|list %}
+        <div class="row">
+            {% for category, items in shopping_list.categories.items() %}
+            {% if items %}
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">{{ category }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            {% for item in items %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="me-2">
+                                        <input type="checkbox" class="form-check-input shopping-item-check" id="item-{{ loop.index }}">
+                                    </span>
+                                    <label for="item-{{ loop.index }}" class="shopping-item-label">{{ item.name }}</label>
+                                </div>
+                                <span class="badge bg-light text-dark">
+                                    {{ "%.2f"|format(item.amount)|replace(".00", "") }} {{ item.unit }}
+                                </span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> No items in your shopping list.
+            <a href="/calendar?start_date={{ start_date }}">Add some meals to your meal plan</a> to generate a shopping list.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Handle shopping item checkbox
+        $('.shopping-item-check').change(function() {
+            if ($(this).is(':checked')) {
+                $(this).closest('li').find('.shopping-item-label').css('text-decoration', 'line-through');
+            } else {
+                $(this).closest('li').find('.shopping-item-label').css('text-decoration', 'none');
+            }
+        });
+    });
+</script>
+{% endblock %}

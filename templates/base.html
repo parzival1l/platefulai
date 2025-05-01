@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Recipe Management App{% endblock %}</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/main.css">
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        main {
+            flex: 1;
+        }
+
+        .recipe-card {
+            transition: transform 0.3s;
+        }
+
+        .recipe-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-link.active {
+            font-weight: bold;
+            border-bottom: 2px solid #0d6efd;
+        }
+
+        .meal-slot {
+            min-height: 100px;
+            border: 2px dashed #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .meal-item {
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 5px;
+        }
+
+        footer {
+            margin-top: auto;
+        }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/">Recipe Manager</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.url.path == '/' %}active{% endif %}" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.url.path.startswith('/recipes') %}active{% endif %}" href="/recipes">Recipes</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.url.path.startswith('/calendar') %}active{% endif %}" href="/calendar">Meal Planning</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.url.path.startswith('/shopping') %}active{% endif %}" href="/shopping">Shopping List</a>
+                    </li>
+                </ul>
+                <form class="d-flex" action="/recipes/search" method="get">
+                    <input class="form-control me-2" type="search" name="q" placeholder="Search recipes" aria-label="Search">
+                    <button class="btn btn-outline-light" type="submit">Search</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mb-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-light py-3 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">Recipe Management App &copy; 2024</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Custom JS -->
+    <script src="/static/js/main.js"></script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
