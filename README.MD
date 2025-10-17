@@ -121,3 +121,8 @@ recipe_app/
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Screenshots
+
+![Home screenshot](Screenshots/Screenshot%202025-10-17%20at%203.39.29%E2%80%AFPM.png)
+![Recipes screenshot](Screenshots/Screenshot%202025-10-17%20at%203.41.35%E2%80%AFPM.png)
