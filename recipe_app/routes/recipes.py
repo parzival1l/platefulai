@@ -1,34 +1,33 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Form
+import json
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from typing import List, Optional
-import json
 
-from database import get_db, Recipe, Ingredient
-from models.recipe import RecipeCreate, Recipe as RecipeModel, RecipeWithCalories
-from services.usda_api import USDAApiClient
+from recipe_app.database import Ingredient, Recipe, get_db
+from recipe_app.services.usda_api import USDAApiClient
+
+_TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "static" / "templates"
 
 router = APIRouter()
-templates = Jinja2Templates(directory="static/templates")
+templates = Jinja2Templates(directory=str(_TEMPLATES_DIR))
 usda_client = USDAApiClient()
+
 
 @router.get("/", response_class=HTMLResponse)
 async def list_recipes(request: Request, db: Session = Depends(get_db)):
     """Render the recipe catalog page"""
     recipes = db.query(Recipe).all()
-    return templates.TemplateResponse(
-        "recipes/index.html",
-        {"request": request, "recipes": recipes}
-    )
+    return templates.TemplateResponse("recipes/index.html", {"request": request, "recipes": recipes})
+
 
 @router.get("/new", response_class=HTMLResponse)
 async def new_recipe_form(request: Request):
     """Render the new recipe form"""
-    return templates.TemplateResponse(
-        "recipes/new.html",
-        {"request": request}
-    )
+    return templates.TemplateResponse("recipes/new.html", {"request": request})
+
 
 @router.post("/")
 async def create_recipe(
@@ -39,7 +38,7 @@ async def create_recipe(
     prep_time: int = Form(None),
     cook_time: int = Form(None),
     ingredients_json: str = Form(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Create a new recipe"""
     try:
@@ -53,7 +52,7 @@ async def create_recipe(
             instructions=instructions,
             servings=servings,
             prep_time=prep_time,
-            cook_time=cook_time
+            cook_time=cook_time,
         )
         db.add(db_recipe)
         db.flush()  # Get the recipe ID
@@ -66,7 +65,7 @@ async def create_recipe(
                 amount=ing_data["amount"],
                 unit=ing_data["unit"],
                 usda_food_id=ing_data.get("usda_food_id"),
-                calories_per_unit=ing_data.get("calories_per_unit")
+                calories_per_unit=ing_data.get("calories_per_unit"),
             )
             db.add(db_ingredient)
 
@@ -78,6 +77,7 @@ async def create_recipe(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+
 
 @router.get("/{recipe_id}", response_class=HTMLResponse)
 async def get_recipe(request: Request, recipe_id: int, db: Session = Depends(get_db)):
@@ -100,9 +100,10 @@ async def get_recipe(request: Request, recipe_id: int, db: Session = Depends(get
             "request": request,
             "recipe": recipe,
             "total_calories": total_calories,
-            "calories_per_serving": calories_per_serving
-        }
+            "calories_per_serving": calories_per_serving,
+        },
     )
+
 
 @router.get("/{recipe_id}/edit", response_class=HTMLResponse)
 async def edit_recipe_form(request: Request, recipe_id: int, db: Session = Depends(get_db)):
@@ -111,10 +112,8 @@ async def edit_recipe_form(request: Request, recipe_id: int, db: Session = Depen
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
 
-    return templates.TemplateResponse(
-        "recipes/edit.html",
-        {"request": request, "recipe": recipe}
-    )
+    return templates.TemplateResponse("recipes/edit.html", {"request": request, "recipe": recipe})
+
 
 @router.post("/{recipe_id}")
 async def update_recipe(
@@ -126,7 +125,7 @@ async def update_recipe(
     prep_time: int = Form(None),
     cook_time: int = Form(None),
     ingredients_json: str = Form(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Update an existing recipe"""
     recipe = db.query(Recipe).filter(Recipe.id == recipe_id).first()
@@ -156,7 +155,7 @@ async def update_recipe(
                 amount=ing_data["amount"],
                 unit=ing_data["unit"],
                 usda_food_id=ing_data.get("usda_food_id"),
-                calories_per_unit=ing_data.get("calories_per_unit")
+                calories_per_unit=ing_data.get("calories_per_unit"),
             )
             db.add(db_ingredient)
 
@@ -168,6 +167,7 @@ async def update_recipe(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+
 
 @router.get("/{recipe_id}/delete")
 async def delete_recipe(recipe_id: int, db: Session = Depends(get_db)):
@@ -182,14 +182,13 @@ async def delete_recipe(recipe_id: int, db: Session = Depends(get_db)):
     # Redirect to recipe list
     return RedirectResponse(url="/recipes", status_code=303)
 
+
 @router.get("/search")
 async def search_recipes(request: Request, q: str, db: Session = Depends(get_db)):
     """Search for recipes by name"""
     recipes = db.query(Recipe).filter(Recipe.name.ilike(f"%{q}%")).all()
-    return templates.TemplateResponse(
-        "recipes/index.html",
-        {"request": request, "recipes": recipes, "search_query": q}
-    )
+    return templates.TemplateResponse("recipes/index.html", {"request": request, "recipes": recipes, "search_query": q})
+
 
 @router.get("/api/list")
 async def api_list_recipes(db: Session = Depends(get_db)):

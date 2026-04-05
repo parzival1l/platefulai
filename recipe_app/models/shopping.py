@@ -1,19 +1,22 @@
-from pydantic import BaseModel
-from typing import List, Dict
 from datetime import date
+
+from pydantic import BaseModel
+
 
 class ShoppingItem(BaseModel):
     name: str
     amount: float
     unit: str
-    recipes: List[str]  # List of recipe names using this ingredient
+    recipes: list[str]  # List of recipe names using this ingredient
+
 
 class ShoppingList(BaseModel):
     start_date: date
     end_date: date
-    items: List[ShoppingItem]
+    items: list[ShoppingItem]
+
 
 class ShoppingListByCategory(BaseModel):
     start_date: date
     end_date: date
-    categories: Dict[str, List[ShoppingItem]]  # Category -> List of items
+    categories: dict[str, list[ShoppingItem]]  # Category -> List of items

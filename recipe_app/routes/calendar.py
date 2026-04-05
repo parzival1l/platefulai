@@ -1,22 +1,22 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Form
+from datetime import date, datetime, timedelta
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from typing import List, Dict, Optional
-from datetime import date, datetime, timedelta
 
-from database import get_db, Recipe, MealPlan
-from models.calendar import MealPlanCreate, WeeklyMealPlan, DailyMealPlan
+from recipe_app.database import MealPlan, Recipe, get_db
+from recipe_app.models.calendar import DailyMealPlan, WeeklyMealPlan
+
+_TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "static" / "templates"
 
 router = APIRouter()
-templates = Jinja2Templates(directory="static/templates")
+templates = Jinja2Templates(directory=str(_TEMPLATES_DIR))
+
 
 @router.get("/", response_class=HTMLResponse)
-async def show_calendar(
-    request: Request,
-    start_date: Optional[str] = None,
-    db: Session = Depends(get_db)
-):
+async def show_calendar(request: Request, start_date: str | None = None, db: Session = Depends(get_db)):
     """
     Render the meal planning calendar
 
@@ -47,35 +47,29 @@ async def show_calendar(
     end_date = week_dates[-1]
 
     # Get all meal plans for the current week
-    meal_plans = db.query(MealPlan).filter(
-        MealPlan.date >= start_date,
-        MealPlan.date <= end_date
-    ).all()
+    meal_plans = db.query(MealPlan).filter(MealPlan.date >= start_date, MealPlan.date <= end_date).all()
 
     # Organize meal plans by date and meal type
     calendar_data = {}
     for d in week_dates:
-        calendar_data[d] = {
-            "breakfast": None,
-            "lunch": None,
-            "dinner": None,
-            "snacks": []
-        }
+        calendar_data[d] = {"breakfast": None, "lunch": None, "dinner": None, "snacks": []}
 
     for plan in meal_plans:
         recipe = db.query(Recipe).filter(Recipe.id == plan.recipe_id).first()
 
         if plan.meal_type == "snack":
-            calendar_data[plan.date]["snacks"].append({
-                "plan_id": plan.id,
-                "recipe_id": plan.recipe_id,
-                "recipe_name": recipe.name if recipe else "Unknown Recipe"
-            })
+            calendar_data[plan.date]["snacks"].append(
+                {
+                    "plan_id": plan.id,
+                    "recipe_id": plan.recipe_id,
+                    "recipe_name": recipe.name if recipe else "Unknown Recipe",
+                }
+            )
         else:
             calendar_data[plan.date][plan.meal_type] = {
                 "plan_id": plan.id,
                 "recipe_id": plan.recipe_id,
-                "recipe_name": recipe.name if recipe else "Unknown Recipe"
+                "recipe_name": recipe.name if recipe else "Unknown Recipe",
             }
 
     # Get all recipes for the dropdown
@@ -90,16 +84,14 @@ async def show_calendar(
             "recipes": recipes,
             "prev_week": (start_date - timedelta(days=7)).isoformat(),
             "next_week": (start_date + timedelta(days=7)).isoformat(),
-            "current_week_start": start_date.isoformat()
-        }
+            "current_week_start": start_date.isoformat(),
+        },
     )
+
 
 @router.post("/plan")
 async def add_meal_plan(
-    date: str = Form(...),
-    meal_type: str = Form(...),
-    recipe_id: int = Form(...),
-    db: Session = Depends(get_db)
+    date: str = Form(...), meal_type: str = Form(...), recipe_id: int = Form(...), db: Session = Depends(get_db)
 ):
     """
     Add a new meal plan
@@ -124,10 +116,9 @@ async def add_meal_plan(
 
         # For breakfast, lunch, dinner: check if a plan already exists and replace it
         if meal_type in ["breakfast", "lunch", "dinner"]:
-            existing_plan = db.query(MealPlan).filter(
-                MealPlan.date == plan_date,
-                MealPlan.meal_type == meal_type
-            ).first()
+            existing_plan = (
+                db.query(MealPlan).filter(MealPlan.date == plan_date, MealPlan.meal_type == meal_type).first()
+            )
 
             if existing_plan:
                 existing_plan.recipe_id = recipe_id
@@ -135,11 +126,7 @@ async def add_meal_plan(
                 return RedirectResponse(url=f"/calendar?start_date={date}", status_code=303)
 
         # Create new meal plan
-        meal_plan = MealPlan(
-            date=plan_date,
-            meal_type=meal_type,
-            recipe_id=recipe_id
-        )
+        meal_plan = MealPlan(date=plan_date, meal_type=meal_type, recipe_id=recipe_id)
         db.add(meal_plan)
         db.commit()
 
@@ -149,8 +136,9 @@ async def add_meal_plan(
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @router.get("/plan/{plan_id}/delete")
-async def delete_meal_plan(plan_id: int, redirect_date: Optional[str] = None, db: Session = Depends(get_db)):
+async def delete_meal_plan(plan_id: int, redirect_date: str | None = None, db: Session = Depends(get_db)):
     """
     Delete a meal plan
 
@@ -177,11 +165,9 @@ async def delete_meal_plan(plan_id: int, redirect_date: Optional[str] = None, db
     redirect_to = redirect_date if redirect_date else plan_date
     return RedirectResponse(url=f"/calendar?start_date={redirect_to}", status_code=303)
 
+
 @router.get("/api/weekly")
-async def get_weekly_meal_plan(
-    start_date: str,
-    db: Session = Depends(get_db)
-):
+async def get_weekly_meal_plan(start_date: str, db: Session = Depends(get_db)):
     """
     Get weekly meal plan data as JSON
 
@@ -198,21 +184,14 @@ async def get_weekly_meal_plan(
         week_end = week_start + timedelta(days=6)
 
         # Get all meal plans for the week
-        meal_plans = db.query(MealPlan).filter(
-            MealPlan.date >= week_start,
-            MealPlan.date <= week_end
-        ).all()
+        meal_plans = db.query(MealPlan).filter(MealPlan.date >= week_start, MealPlan.date <= week_end).all()
 
         # Organize by date
         daily_plans = {}
         for i in range(7):
             current_date = week_start + timedelta(days=i)
             daily_plans[current_date] = DailyMealPlan(
-                date=current_date,
-                breakfast=None,
-                lunch=None,
-                dinner=None,
-                snacks=[]
+                date=current_date, breakfast=None, lunch=None, dinner=None, snacks=[]
             )
 
         # Fill in meal plans
@@ -233,11 +212,7 @@ async def get_weekly_meal_plan(
         # Convert to list for response
         days = [daily_plans[week_start + timedelta(days=i)] for i in range(7)]
 
-        return WeeklyMealPlan(
-            start_date=week_start,
-            end_date=week_end,
-            days=days
-        )
+        return WeeklyMealPlan(start_date=week_start, end_date=week_end, days=days)
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

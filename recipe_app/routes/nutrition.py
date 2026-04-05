@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List, Dict, Any
 
-from database import get_db, Recipe, Ingredient
-from services.usda_api import USDAApiClient
+from recipe_app.database import Ingredient, Recipe, get_db
+from recipe_app.services.usda_api import USDAApiClient
 
 router = APIRouter()
 usda_client = USDAApiClient()
+
 
 @router.get("/search")
 async def search_usda_foods(query: str, page_size: int = Query(10, le=50)):
@@ -27,27 +27,30 @@ async def search_usda_foods(query: str, page_size: int = Query(10, le=50)):
         foods = []
         if "foods" in results:
             for food in results["foods"]:
-                foods.append({
-                    "id": food.get("fdcId"),
-                    "description": food.get("description"),
-                    "brand": food.get("brandOwner", ""),
-                    "category": food.get("foodCategory", ""),
-                    "nutrients": [
-                        {
-                            "id": n.get("nutrientId"),
-                            "name": n.get("nutrientName"),
-                            "amount": n.get("value"),
-                            "unit": n.get("unitName")
-                        }
-                        for n in food.get("foodNutrients", [])
-                        if n.get("nutrientId") in [1008, 1003, 1004, 1005]  # Calories, Protein, Fat, Carbs
-                    ]
-                })
+                foods.append(
+                    {
+                        "id": food.get("fdcId"),
+                        "description": food.get("description"),
+                        "brand": food.get("brandOwner", ""),
+                        "category": food.get("foodCategory", ""),
+                        "nutrients": [
+                            {
+                                "id": n.get("nutrientId"),
+                                "name": n.get("nutrientName"),
+                                "amount": n.get("value"),
+                                "unit": n.get("unitName"),
+                            }
+                            for n in food.get("foodNutrients", [])
+                            if n.get("nutrientId") in [1008, 1003, 1004, 1005]  # Calories, Protein, Fat, Carbs
+                        ],
+                    }
+                )
 
         return {"foods": foods, "total_hits": results.get("totalHits", 0)}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/food/{food_id}")
 async def get_food_nutrients(food_id: str):
@@ -79,15 +82,16 @@ async def get_food_nutrients(food_id: str):
                     "id": n.get("nutrient", {}).get("id"),
                     "name": n.get("nutrient", {}).get("name"),
                     "amount": n.get("amount"),
-                    "unit": n.get("nutrient", {}).get("unitName")
+                    "unit": n.get("nutrient", {}).get("unitName"),
                 }
                 for n in food_data.get("foodNutrients", [])
                 if n.get("amount") is not None
-            ]
+            ],
         }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/calculate/{recipe_id}")
 async def calculate_recipe_nutrition(recipe_id: int, db: Session = Depends(get_db)):
@@ -118,11 +122,7 @@ async def calculate_recipe_nutrition(recipe_id: int, db: Session = Depends(get_d
         # Otherwise, try to get from USDA API if we have a food ID
         elif ingredient.usda_food_id:
             try:
-                calories_per_unit = usda_client.calculate_calories(
-                    ingredient.usda_food_id,
-                    1.0,
-                    ingredient.unit
-                )
+                calories_per_unit = usda_client.calculate_calories(ingredient.usda_food_id, 1.0, ingredient.unit)
                 if calories_per_unit:
                     calories = calories_per_unit * ingredient.amount
 
@@ -132,13 +132,15 @@ async def calculate_recipe_nutrition(recipe_id: int, db: Session = Depends(get_d
             except Exception:
                 pass  # Skip if API call fails
 
-        ingredients_with_calories.append({
-            "id": ingredient.id,
-            "name": ingredient.name,
-            "amount": ingredient.amount,
-            "unit": ingredient.unit,
-            "calories": calories
-        })
+        ingredients_with_calories.append(
+            {
+                "id": ingredient.id,
+                "name": ingredient.name,
+                "amount": ingredient.amount,
+                "unit": ingredient.unit,
+                "calories": calories,
+            }
+        )
 
         if calories:
             total_calories += calories
@@ -152,15 +154,12 @@ async def calculate_recipe_nutrition(recipe_id: int, db: Session = Depends(get_d
         "total_calories": total_calories,
         "calories_per_serving": calories_per_serving,
         "servings": recipe.servings,
-        "ingredients": ingredients_with_calories
+        "ingredients": ingredients_with_calories,
     }
 
+
 @router.post("/update_ingredient_nutrition")
-async def update_ingredient_nutrition(
-    ingredient_id: int,
-    usda_food_id: str,
-    db: Session = Depends(get_db)
-):
+async def update_ingredient_nutrition(ingredient_id: int, usda_food_id: str, db: Session = Depends(get_db)):
     """
     Update an ingredient with nutrition information from USDA API
 
@@ -177,17 +176,10 @@ async def update_ingredient_nutrition(
 
     try:
         # Calculate calories per unit
-        calories_per_unit = usda_client.calculate_calories(
-            usda_food_id,
-            1.0,
-            ingredient.unit
-        )
+        calories_per_unit = usda_client.calculate_calories(usda_food_id, 1.0, ingredient.unit)
 
         if calories_per_unit is None:
-            raise HTTPException(
-                status_code=400,
-                detail="Could not calculate calories for this ingredient"
-            )
+            raise HTTPException(status_code=400, detail="Could not calculate calories for this ingredient")
 
         # Update ingredient
         ingredient.usda_food_id = usda_food_id
@@ -199,7 +191,7 @@ async def update_ingredient_nutrition(
             "name": ingredient.name,
             "usda_food_id": ingredient.usda_food_id,
             "calories_per_unit": ingredient.calories_per_unit,
-            "total_calories": ingredient.calories_per_unit * ingredient.amount
+            "total_calories": ingredient.calories_per_unit * ingredient.amount,
         }
 
     except Exception as e:

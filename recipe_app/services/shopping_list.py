@@ -1,10 +1,11 @@
-from typing import List, Dict, Any
-from datetime import date, timedelta
-from sqlalchemy.orm import Session
 from collections import defaultdict
+from datetime import date
 
-from database import Recipe, Ingredient, MealPlan
-from models.shopping import ShoppingItem, ShoppingList, ShoppingListByCategory
+from sqlalchemy.orm import Session
+
+from recipe_app.database import Ingredient, MealPlan, Recipe
+from recipe_app.models.shopping import ShoppingItem, ShoppingList, ShoppingListByCategory
+
 
 class ShoppingListGenerator:
     """Service for generating shopping lists from meal plans"""
@@ -25,10 +26,7 @@ class ShoppingListGenerator:
             ShoppingList containing consolidated ingredients
         """
         # Get all meal plans for the specified date range
-        meal_plans = self.db.query(MealPlan).filter(
-            MealPlan.date >= start_date,
-            MealPlan.date <= end_date
-        ).all()
+        meal_plans = self.db.query(MealPlan).filter(MealPlan.date >= start_date, MealPlan.date <= end_date).all()
 
         # Extract all recipe IDs
         recipe_ids = [meal_plan.recipe_id for meal_plan in meal_plans]
@@ -45,20 +43,12 @@ class ShoppingListGenerator:
             ingredients_by_recipe[recipe.id] = recipe.ingredients
 
         # Consolidate ingredients
-        consolidated_ingredients = self._consolidate_ingredients(
-            ingredients_by_recipe, recipe_names
-        )
+        consolidated_ingredients = self._consolidate_ingredients(ingredients_by_recipe, recipe_names)
 
         # Create shopping list
-        return ShoppingList(
-            start_date=start_date,
-            end_date=end_date,
-            items=consolidated_ingredients
-        )
+        return ShoppingList(start_date=start_date, end_date=end_date, items=consolidated_ingredients)
 
-    def generate_categorized_shopping_list(
-        self, start_date: date, end_date: date
-    ) -> ShoppingListByCategory:
+    def generate_categorized_shopping_list(self, start_date: date, end_date: date) -> ShoppingListByCategory:
         """
         Generate a shopping list organized by category
 
@@ -76,17 +66,11 @@ class ShoppingListGenerator:
         categorized_items = self._categorize_ingredients(shopping_list.items)
 
         # Create categorized shopping list
-        return ShoppingListByCategory(
-            start_date=start_date,
-            end_date=end_date,
-            categories=categorized_items
-        )
+        return ShoppingListByCategory(start_date=start_date, end_date=end_date, categories=categorized_items)
 
     def _consolidate_ingredients(
-        self,
-        ingredients_by_recipe: Dict[int, List[Ingredient]],
-        recipe_names: Dict[int, str]
-    ) -> List[ShoppingItem]:
+        self, ingredients_by_recipe: dict[int, list[Ingredient]], recipe_names: dict[int, str]
+    ) -> list[ShoppingItem]:
         """
         Consolidate ingredients from multiple recipes
 
@@ -118,7 +102,7 @@ class ShoppingListGenerator:
                         "name": ingredient.name,
                         "amount": ingredient.amount,
                         "unit": ingredient.unit,
-                        "recipes": {recipe_name}
+                        "recipes": {recipe_name},
                     }
 
         # Convert to ShoppingItem objects
@@ -129,7 +113,7 @@ class ShoppingListGenerator:
                     name=item_data["name"],
                     amount=item_data["amount"],
                     unit=item_data["unit"],
-                    recipes=list(item_data["recipes"])
+                    recipes=list(item_data["recipes"]),
                 )
             )
 
@@ -138,7 +122,7 @@ class ShoppingListGenerator:
 
         return shopping_items
 
-    def _categorize_ingredients(self, items: List[ShoppingItem]) -> Dict[str, List[ShoppingItem]]:
+    def _categorize_ingredients(self, items: list[ShoppingItem]) -> dict[str, list[ShoppingItem]]:
         """
         Categorize ingredients into food groups
 
@@ -151,36 +135,60 @@ class ShoppingListGenerator:
         # Define categories and common ingredients in each
         categories = {
             "Produce": [
-                "apple", "banana", "lettuce", "tomato", "onion", "garlic",
-                "carrot", "potato", "cucumber", "pepper", "spinach", "kale",
-                "broccoli", "cabbage", "celery", "mushroom", "fruit", "vegetable"
+                "apple",
+                "banana",
+                "lettuce",
+                "tomato",
+                "onion",
+                "garlic",
+                "carrot",
+                "potato",
+                "cucumber",
+                "pepper",
+                "spinach",
+                "kale",
+                "broccoli",
+                "cabbage",
+                "celery",
+                "mushroom",
+                "fruit",
+                "vegetable",
             ],
             "Meat & Seafood": [
-                "beef", "chicken", "pork", "lamb", "turkey", "fish", "salmon",
-                "tuna", "shrimp", "seafood", "meat", "steak", "bacon", "sausage"
+                "beef",
+                "chicken",
+                "pork",
+                "lamb",
+                "turkey",
+                "fish",
+                "salmon",
+                "tuna",
+                "shrimp",
+                "seafood",
+                "meat",
+                "steak",
+                "bacon",
+                "sausage",
             ],
-            "Dairy & Eggs": [
-                "milk", "cheese", "yogurt", "butter", "cream", "egg", "dairy"
-            ],
-            "Bakery": [
-                "bread", "roll", "bun", "bagel", "tortilla", "pita", "pastry", "cake"
-            ],
-            "Grains & Pasta": [
-                "rice", "pasta", "noodle", "cereal", "oat", "grain", "quinoa", "barley"
-            ],
-            "Canned Goods": [
-                "can", "soup", "bean", "tomato sauce", "corn", "tuna"
-            ],
+            "Dairy & Eggs": ["milk", "cheese", "yogurt", "butter", "cream", "egg", "dairy"],
+            "Bakery": ["bread", "roll", "bun", "bagel", "tortilla", "pita", "pastry", "cake"],
+            "Grains & Pasta": ["rice", "pasta", "noodle", "cereal", "oat", "grain", "quinoa", "barley"],
+            "Canned Goods": ["can", "soup", "bean", "tomato sauce", "corn", "tuna"],
             "Condiments & Spices": [
-                "salt", "pepper", "spice", "herb", "sauce", "oil", "vinegar",
-                "ketchup", "mustard", "mayonnaise", "dressing"
+                "salt",
+                "pepper",
+                "spice",
+                "herb",
+                "sauce",
+                "oil",
+                "vinegar",
+                "ketchup",
+                "mustard",
+                "mayonnaise",
+                "dressing",
             ],
-            "Snacks": [
-                "chip", "crisp", "cracker", "nut", "snack", "cookie", "chocolate"
-            ],
-            "Beverages": [
-                "water", "juice", "soda", "coffee", "tea", "wine", "beer", "drink"
-            ]
+            "Snacks": ["chip", "crisp", "cracker", "nut", "snack", "cookie", "chocolate"],
+            "Beverages": ["water", "juice", "soda", "coffee", "tea", "wine", "beer", "drink"],
         }
 
         # Initialize result dictionary with empty lists

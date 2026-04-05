@@ -1,17 +1,19 @@
-import requests
 import os
-from typing import Dict, List, Optional, Any
+from typing import Any
+
+import requests
+
 
 class USDAApiClient:
     """Client for interacting with the USDA FoodData Central API"""
 
     BASE_URL = "https://api.nal.usda.gov/fdc/v1"
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         """Initialize the USDA API client"""
         self.api_key = api_key or os.getenv("USDA_API_KEY", "DEMO_KEY")
 
-    def search_foods(self, query: str, page_size: int = 10) -> Dict[str, Any]:
+    def search_foods(self, query: str, page_size: int = 10) -> dict[str, Any]:
         """
         Search for foods matching the query
 
@@ -27,14 +29,14 @@ class USDAApiClient:
             "api_key": self.api_key,
             "query": query,
             "pageSize": page_size,
-            "dataType": ["Foundation", "SR Legacy"]  # Use standard reference data
+            "dataType": ["Foundation", "SR Legacy"],  # Use standard reference data
         }
 
         response = requests.get(endpoint, params=params)
         response.raise_for_status()
         return response.json()
 
-    def get_food_details(self, food_id: str) -> Dict[str, Any]:
+    def get_food_details(self, food_id: str) -> dict[str, Any]:
         """
         Get detailed information about a specific food
 
@@ -51,7 +53,7 @@ class USDAApiClient:
         response.raise_for_status()
         return response.json()
 
-    def get_nutrient_data(self, food_id: str, nutrient_id: int = 1008) -> Optional[float]:
+    def get_nutrient_data(self, food_id: str, nutrient_id: int = 1008) -> float | None:
         """
         Get specific nutrient data for a food
         Default nutrient_id 1008 is for energy (calories)
@@ -73,7 +75,7 @@ class USDAApiClient:
 
         return None
 
-    def calculate_calories(self, food_id: str, amount: float, unit: str) -> Optional[float]:
+    def calculate_calories(self, food_id: str, amount: float, unit: str) -> float | None:
         """
         Calculate calories for the specified amount of food
 
@@ -102,7 +104,7 @@ class USDAApiClient:
         # Calculate calories for the specified amount
         return (calories_per_100g / 100) * grams
 
-    def _convert_to_grams(self, amount: float, unit: str) -> Optional[float]:
+    def _convert_to_grams(self, amount: float, unit: str) -> float | None:
         """
         Convert an amount from the given unit to grams
 
@@ -122,7 +124,7 @@ class USDAApiClient:
             "cup": 240,  # Rough estimate, depends on ingredient
             "tbsp": 15,
             "tsp": 5,
-            "ml": 1,     # Assuming water density for liquids
+            "ml": 1,  # Assuming water density for liquids
             "l": 1000,
         }
 

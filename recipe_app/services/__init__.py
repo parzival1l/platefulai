@@ -1,7 +1,3 @@
-# Import services to make them accessible when importing the package
-from . import usda_api
-from . import shopping_list
-
 # Placeholder for recipe parser (to be implemented later)
 class RecipeParser:
     """Placeholder for recipe link parser"""
@@ -24,10 +20,10 @@ class RecipeParser:
             "description": "This is a placeholder for the recipe parser feature.",
             "ingredients": [
                 {"name": "Ingredient 1", "amount": 1, "unit": "cup"},
-                {"name": "Ingredient 2", "amount": 2, "unit": "tbsp"}
+                {"name": "Ingredient 2", "amount": 2, "unit": "tbsp"},
             ],
             "instructions": "These are placeholder instructions for the recipe.",
             "servings": 4,
             "prep_time": 15,
-            "cook_time": 30
+            "cook_time": 30,
         }

@@ -1,16 +1,19 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional
 from datetime import datetime
+
+from pydantic import BaseModel, Field
+
 
 class IngredientBase(BaseModel):
     name: str
     amount: float
     unit: str
-    usda_food_id: Optional[str] = None
-    calories_per_unit: Optional[float] = None
+    usda_food_id: str | None = None
+    calories_per_unit: float | None = None
+
 
 class IngredientCreate(IngredientBase):
     pass
+
 
 class Ingredient(IngredientBase):
     id: int
@@ -19,24 +22,28 @@ class Ingredient(IngredientBase):
     class Config:
         orm_mode = True
 
+
 class RecipeBase(BaseModel):
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     instructions: str
     servings: int = Field(gt=0)
-    prep_time: Optional[int] = None  # minutes
-    cook_time: Optional[int] = None  # minutes
+    prep_time: int | None = None  # minutes
+    cook_time: int | None = None  # minutes
+
 
 class RecipeCreate(RecipeBase):
-    ingredients: List[IngredientCreate]
+    ingredients: list[IngredientCreate]
+
 
 class Recipe(RecipeBase):
     id: int
     created_at: datetime
-    ingredients: List[Ingredient] = []
+    ingredients: list[Ingredient] = []
 
     class Config:
         orm_mode = True
+
 
 class RecipeWithCalories(Recipe):
     total_calories: float
